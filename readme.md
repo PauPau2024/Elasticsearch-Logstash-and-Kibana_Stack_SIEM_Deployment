@@ -1,4 +1,4 @@
-Setting up the **ELK Stack** (Elasticsearch, Logstash, and Kibana) allows you to collect, store, search, and visualize logs in real-time. Below is a step-by-step guide to set it up on a Linux-based system (like Ubuntu 20.04). You can adapt it for Docker or cloud as needed.
+Setting up the **ELK Stack** (Elasticsearch, Logstash, and Kibana) allows you to collect, store, search, and visualize logs in real-time. Below is a step-by-step guide to set it up on a Linux-based system (like Ubuntu 20.04).
 
 ---
 
@@ -65,7 +65,7 @@ Open Kibana at `http://localhost:5601` in your browser.
 
 ---
 
-## 4. **Basic Configuration (Optional but Recommended)**
+## 4. **Basic Configuration**
 
 * **Elasticsearch**: `/etc/elasticsearch/elasticsearch.yml`
 
@@ -80,6 +80,238 @@ Open Kibana at `http://localhost:5601` in your browser.
   ```
 
 ---
+
+Here's a **complete step-by-step guide to set up the Kibana keystore**, which is used to securely store secrets like passwords, encryption keys, tokens, etc., **without putting them in `kibana.yml`**.
+
+---
+
+## ✅ 1. **Navigate to the Kibana `bin` directory**
+
+```bash
+cd /usr/share/kibana/bin
+```
+
+---
+
+## ✅ 2. **Create the Kibana keystore**
+
+If you haven’t already:
+
+```bash
+./kibana-keystore create
+```
+
+Expected output:
+
+```
+Created Kibana keystore in /usr/share/kibana/data/kibana.keystore
+```
+
+---
+
+## ✅ 3. **Add secure settings**
+
+You can now securely add secrets. Here are the most commonly used ones:
+
+### 🔐 Add `xpack.security.encryptionKey`
+
+```bash
+echo "your_32_char_encryption_key" | ./kibana-keystore add xpack.security.encryptionKey --stdin
+```
+
+Example:
+
+```bash
+echo "57694b5b18cc737d66191bd562d14776" | ./kibana-keystore add xpack.security.encryptionKey --stdin
+```
+
+---
+
+### 🔐 (Optional) Add other secure values:
+
+#### Encrypted Saved Objects key:
+
+```bash
+echo "another_32_char_key" | ./kibana-keystore add xpack.encryptedSavedObjects.encryptionKey --stdin
+```
+
+#### Reporting key:
+
+```bash
+echo "reporting_32_char_key" | ./kibana-keystore add xpack.reporting.encryptionKey --stdin
+```
+
+> All encryption keys must be exactly **32 characters** long.
+
+---
+
+## ✅ 4. **Verify keys stored**
+
+To see what keys are stored (but not their values):
+
+```bash
+./kibana-keystore list
+```
+
+---
+
+## ✅ 5. **Restart Kibana**
+
+```bash
+sudo systemctl restart kibana
+```
+
+---
+
+## 🔒 Notes:
+
+* The keystore is stored at: `/usr/share/kibana/data/kibana.keystore`
+* Do **not** manually edit this file.
+* You can use the keystore to avoid exposing secrets in plain text in `kibana.yml`.
+
+---
+
+Would you like to automate this process via a script or add keys programmatically inside a Docker container or deployment pipeline?
+
+
+---
+
+
+Absolutely! Here's a simple and clear **tutorial for setting up and configuring UFW (Uncomplicated Firewall)** to allow access to Elasticsearch and Kibana while ensuring SSH access is maintained.
+
+---
+
+# 🔥 **UFW Firewall Setup for ELK Stack (Ubuntu)**
+
+This guide explains how to:
+
+* Enable UFW
+* Allow access to Elasticsearch (9200)
+* Allow access to Kibana (5601)
+* Ensure you don’t lose SSH access
+
+---
+
+## 📋 **Step-by-Step Instructions**
+
+### 🧱 Step 1: Check UFW Status
+
+```bash
+sudo ufw status
+```
+
+If output is:
+
+```
+Status: inactive
+```
+
+→ The firewall is installed but not yet active.
+
+---
+
+### 🔐 Step 2: Allow SSH Access (Prevent Lockout)
+
+This step is **critical** if you're using a remote server via SSH.
+
+```bash
+sudo ufw allow OpenSSH
+```
+
+Or manually:
+
+```bash
+sudo ufw allow 22/tcp
+```
+
+---
+
+### 🔥 Step 3: Enable the Firewall
+
+```bash
+sudo ufw enable
+```
+
+You’ll see:
+
+```
+Command may disrupt existing ssh connections. Proceed with operation (y|n)?
+```
+
+Type `y` and press Enter.
+
+> ✅ UFW is now active and will persist on startup.
+
+---
+
+### 🚪 Step 4: Allow ELK Stack Ports
+
+#### ➤ Allow Elasticsearch (port 9200)
+
+```bash
+sudo ufw allow 9200/tcp
+```
+
+#### ➤ Allow Kibana (port 5601)
+
+```bash
+sudo ufw allow 5601/tcp
+```
+
+This allows external access to the respective services.
+
+---
+
+### 🧪 Step 5: Verify Firewall Rules
+
+```bash
+sudo ufw status verbose
+```
+
+Example output:
+
+```
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22/tcp (OpenSSH)           ALLOW       Anywhere
+9200/tcp                   ALLOW       Anywhere
+5601/tcp                   ALLOW       Anywhere
+```
+
+---
+
+## ✅ Done!
+
+You’ve successfully:
+
+* Enabled UFW
+* Preserved SSH access
+* Allowed necessary ports for Elasticsearch and Kibana
+
+---
+
+## 🔒 Optional: Restrict Access to Specific IP
+
+Instead of exposing Kibana/Elasticsearch to the whole internet, allow only your IP:
+
+```bash
+sudo ufw allow from <your-ip-address> to any port 5601 proto tcp
+sudo ufw allow from <your-ip-address> to any port 9200 proto tcp
+```
+
+Then delete the wide-open rules:
+
+```bash
+sudo ufw delete allow 5601/tcp
+sudo ufw delete allow 9200/tcp
+```
+
+---
+
+Let me know if you'd like this in **Markdown**, **PDF**, or for a **Docker-based ELK setup**.
+
 
 ## 5. **Send Logs with Logstash**
 
